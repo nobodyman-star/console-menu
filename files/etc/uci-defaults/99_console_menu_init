@@ -1,0 +1,35 @@
+#!/bin/sh
+set -eu
+
+INITTAB="/etc/inittab"
+BACKUP="/etc/inittab.console-menu.bak"
+TMP="/tmp/inittab.cmenu.$$"
+
+[ -f "${INITTAB}" ] || exit 0
+[ -x "/usr/sbin/console-menu" ] || exit 0
+
+# 仅第一次执行做备份
+[ -e "${BACKUP}" ] || cp -p "${INITTAB}" "${BACKUP}"
+
+# 修改规则：
+# 匹配 ttyS0 / tty1 / hvc0 行，把第三个字段改为 askfirst，第四个字段替换为 /usr/sbin/console-menu
+awk -F: '
+BEGIN { OFS=":" }
+$1 ~ /^(ttyS0|tty1|hvc0)$/ {
+    $3 = "askfirst"
+    $4 = "/usr/sbin/console-menu"
+    changed++
+}
+{ print }
+' "${INITTAB}" > "${TMP}"
+
+cmp -s "${INITTAB}" "${TMP}" || cat "${TMP}" > "${INITTAB}"
+rm -f "${TMP}"
+
+# 物理裸机无hvc0设备，则删除hvc0行
+if [ ! -e /dev/hvc0 ]; then
+    sed -i '/^hvc0:/d' "${INITTAB}" 2>/dev/null
+fi
+
+logger -t console-menu "inittab patched, reboot to take effect"
+exit 0
