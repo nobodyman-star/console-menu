@@ -1,0 +1,203 @@
+#!/bin/ash
+WORK_MODE="Bypass Mode"
+REFRESH_DELAY=1
+# ANSI colors
+C_RESET='\033[0m'
+C_GREEN='\033[1;32m'
+C_YELLOW='\033[1;33m'
+C_CYAN='\033[1;36m'
+C_RED='\033[1;31m'
+C_WHITE='\033[1;37m'
+pause() {
+    printf "\nPress Enter to return..."
+    read -r _
+}
+valid_ipv4() {
+    echo "$1" | awk -F. '
+    NF != 4 { exit 1 }
+    {
+        for (i=1; i<=4; i++) {
+            if ($i !~ /^[0-9]+$/ || $i < 0 || $i > 255) exit 1
+        }
+    }'
+}
+get_lan_proto() {
+    uci -q get network.lan.proto 2>/dev/null || echo "unknown"
+}
+get_cpu_usage() {
+    read _ u n s idle iw irq sirq rest < /proc/stat
+    old=$((u+n+s+idle+iw+irq+sirq))
+    old_idle=$((idle+iw))
+    sleep "$REFRESH_DELAY"
+    read _ u n s idle iw irq sirq rest < /proc/stat
+    new=$((u+n+s+idle+iw+irq+sirq))
+    new_idle=$((idle+iw))
+    total=$((new-old))
+    idle_delta=$((new_idle-old_idle))
+    if [ "$total" -gt 0 ]; then
+        echo $(((100*(total-idle_delta))/total))
+    else
+        echo 0
+    fi
+}
+get_memory() {
+    awk '
+    /^MemTotal:/ { total=$2 }
+    /^MemAvailable:/ { avail=$2 }
+    END {
+        if (!avail) {
+            used=0
+        } else {
+            used=total-avail
+        }
+        printf "%dMB/%dMB (%d%%)", used/1024, total/1024, (total ? used*100/total : 0)
+    }' /proc/meminfo
+}
+get_sessions() {
+    if [ -r /proc/sys/net/netfilter/nf_conntrack_count ]; then
+        cat /proc/sys/net/netfilter/nf_conntrack_count
+    elif [ -r /proc/net/nf_conntrack ]; then
+        wc -l < /proc/net/nf_conntrack
+    else
+        echo "N/A"
+    fi
+}
+get_client_count() {
+    {
+        [ -r /tmp/dhcp.leases ] && awk '{print $2}' /tmp/dhcp.leases
+        ip neigh show 2>/dev/null | awk '$1 ~ /^[0-9]+\./ && $0 !~ /FAILED|INCOMPLETE/ {print $1}'
+    } | sort -u | awk 'NF {n++} END {print n+0}'
+}
+get_ip_addresses() {
+    ip -o -4 addr show 2>/dev/null | awk '
+    {
+        iface=$2; ip=$4
+        if (iface != "lo") {
+            printf "    ├─ %s: %s\n", iface, ip
+        }
+    }'
+}
+draw_menu() {
+    clear
+    cpu="$(get_cpu_usage)"
+    mem="$(get_memory)"
+    sessions="$(get_sessions)"
+    clients="$(get_client_count)"
+    hostname="$(uci -q get system.@system[0].hostname 2>/dev/null || hostname)"
+    [ -n "$hostname" ] || hostname="$(hostname)"
+    lanproto="$(get_lan_proto)"
+    printf "${C_WHITE}Hostname: ${C_GREEN}%s${C_RESET}\n" "$hostname"
+    printf "${C_WHITE}Cpu Usage: ${C_GREEN}%s%%${C_RESET}\n" "$cpu"
+    printf "${C_WHITE}Memory Usage: ${C_GREEN}%s${C_RESET}\n" "$mem"
+    printf "${C_WHITE}Network Sessions: ${C_GREEN}%s${C_RESET}\n" "$sessions"
+    printf "${C_WHITE}Client Num: ${C_GREEN}%s${C_RESET}\n" "$clients"
+    printf "${C_WHITE}Work Mode: ${C_GREEN}%s${C_RESET}\n" "$WORK_MODE"
+    printf "${C_WHITE}LAN Protocol: ${C_GREEN}%s${C_RESET}\n" "$lanproto"
+    printf "${C_WHITE}IP Addresses:${C_RESET}\n"
+    get_ip_addresses
+    printf "\n${C_CYAN}------------------------ Quick Start ------------------------${C_RESET}\n"
+    printf "${C_GREEN}[1]${C_WHITE} Set LAN(br-lan) IP Proto to DHCP${C_RESET}\n"
+    printf "${C_YELLOW}[2]${C_WHITE} Set LAN(br-lan) Static IP${C_RESET}\n"
+    printf "${C_CYAN}[3]${C_WHITE} Show network interfaces (ip addr)${C_RESET}\n"
+    printf "${C_CYAN}[4]${C_WHITE} Show Program Info (ps)${C_RESET}\n"
+    printf "${C_CYAN}[5]${C_WHITE} Monitor Online Clients${C_RESET}\n"
+    printf "${C_RED}[q]${C_WHITE} Enter Shell${C_RESET}\n"
+    printf "${C_CYAN}-------------------------------------------------------------${C_RESET}\n"
+    printf "Select an option: "
+}
+set_lan_dhcp() {
+    echo "Changing LAN protocol to DHCP..."
+    uci set network.lan.proto='dhcp' || return 1
+    uci -q delete network.lan.ipaddr
+    uci -q delete network.lan.netmask
+    uci -q delete network.lan.gateway
+    uci -q delete network.lan.broadcast
+    uci commit network || return 1
+    /etc/init.d/network restart
+    echo "LAN is now configured as DHCP. The address may change."
+    pause
+}
+set_lan_static() {
+    printf "Static IPv4 address (e.g. 192.168.1.1): "
+    read -r ipaddr
+    valid_ipv4 "$ipaddr" || { echo "Invalid IPv4 address."; pause; return; }
+    printf "Netmask [255.255.255.0]: "
+    read -r netmask
+    [ -n "$netmask" ] || netmask="255.255.255.0"
+    valid_ipv4 "$netmask" || { echo "Invalid netmask."; pause; return; }
+    printf "Gateway (optional, press Enter to skip): "
+    read -r gateway
+    if [ -n "$gateway" ]; then
+        valid_ipv4 "$gateway" || { echo "Invalid gateway."; pause; return; }
+    fi
+    uci set network.lan.proto='static'
+    uci set network.lan.ipaddr="$ipaddr"
+    uci set network.lan.netmask="$netmask"
+    if [ -n "$gateway" ]; then
+        uci set network.lan.gateway="$gateway"
+    else
+        uci -q delete network.lan.gateway
+    fi
+    uci commit network || { echo "UCI commit failed."; pause; return; }
+    echo "Applying LAN configuration..."
+    /etc/init.d/network restart
+    echo "Static LAN configuration applied: $ipaddr / $netmask"
+    pause
+}
+show_interfaces() {
+    clear
+    echo "Network interfaces"
+    echo "------------------"
+    ip addr show 2>/dev/null
+    echo
+    echo "Routes:"
+    ip route show 2>/dev/null
+    pause
+}
+show_processes() {
+    clear
+    echo "Running processes"
+    echo "-----------------"
+    ps w
+    pause
+}
+monitor_clients() {
+    while :; do
+        clear
+        echo "Online clients (DHCP leases + IPv4 neighbors)"
+        echo "---------------------------------------------"
+        printf "%-18s %-18s %-24s\n" "IPv4" "MAC" "State/Source"
+        [ -r /tmp/dhcp.leases ] && awk '{printf "%-18s %-18s %-24s\n",$3,$2,"DHCP lease"}' /tmp/dhcp.leases
+        ip neigh show 2>/dev/null | awk '
+        $1 ~ /^[0-9]+\./ && $0 !~ /FAILED|INCOMPLETE/ {
+            printf "%-18s %-18s %-24s\n",$1,$5,$NF
+        }'
+        echo
+        echo "Press q then Enter to return; otherwise press Enter to refresh."
+        read -r answer
+        [ "$answer" = "q" ] && break
+    done
+}
+enter_shell() {
+    clear
+    echo "Entering root shell. Type 'exit' to return to the menu."
+    /bin/ash -l
+}
+main() {
+    # Only render on an actual terminal; don't hijack non‑interactive sessions.
+    [ -t 0 ] && [ -t 1 ] || exit 0
+    while :; do
+        draw_menu
+        read -r choice
+        case "$choice" in
+            1) set_lan_dhcp ;;
+            2) set_lan_static ;;
+            3) show_interfaces ;;
+            4) show_processes ;;
+            5) monitor_clients ;;
+            q|Q) enter_shell ;;
+            *) ;;
+        esac
+    done
+}
+main "$@"
