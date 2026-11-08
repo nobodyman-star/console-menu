@@ -1,0 +1,14 @@
+detect_work_mode() {
+    if grep -Eiq 'vmware|virtualbox|kvm|qemu|hyper-v' /proc/cpuinfo 2>/dev/null || \
+       grep -Eiq 'vmware|virtualbox|kvm|qemu|hyper-v' /proc/dmesg 2>/dev/null; then
+        echo "Bypass Mode"
+        return
+    fi
+    gw_dev=$(ip route show default 2>/dev/null | awk '{print $5;exit}')
+    [ -z "$gw_dev" ] && { echo "Unknown"; return; }
+    if brctl show br-lan 2>/dev/null | grep -qw "$gw_dev"; then
+        echo "Bypass Mode"
+    else
+        echo "NAT Mode"
+    fi
+}
