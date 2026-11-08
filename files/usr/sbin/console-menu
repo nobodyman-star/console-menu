@@ -1,26 +1,22 @@
 #!/bin/ash
 # 自动识别工作模式（无brctl，仅使用内置ip工具）
 detect_work_mode() {
-    # 判断是否虚拟机：cpuinfo虚拟化标识
-    # if grep -Eiq 'vmware|virtualbox|kvm|qemu|hyper-v' /proc/cpuinfo 2>/dev/null; then
-    if grep -Eiq 'vmware|virtualbox|kvm|qemu|hyper-v' /proc/cpuinfo 2>/dev/null || \
-       grep -Eiq 'vmware|virtualbox|kvm|qemu|hyper-v' /proc/dmesg 2>/dev/null; then
-        echo "Bypass Mode"
-        return
-    fi
+    local gw_dev
+    # 虚拟化标记检测，仅识别，不直接判定模式，移除失效的/proc/dmesg
+    grep -Eiq 'vmware|virtualbox|kvm|qemu|hyper-v' /proc/cpuinfo 2>/dev/null
 
-    # 获取默认路由出口网卡设备名
-    gw_dev=$(ip route show default 2>/dev/null | awk '{print $5;exit}')
+    # 更健壮的默认路由网卡解析（适配不同ip route输出格式）
+    gw_dev=$(ip route show default 2>/dev/null | awk '/^default/ {for(i=1;i<=NF;i++) if ($i=="dev") {print $(i+1);exit}}')
     [ -z "$gw_dev" ] && { echo "Unknown"; return; }
 
-    # 判断该网口master是否为br-lan
-    master=$(ip -d link show "$gw_dev" 2>/dev/null | awk '/master/ {print $2;exit}')
-    if [ "$master" = "br-lan" ]; then
+    # bridge link 替代 brctl，不需要安装bridge-utils
+    if bridge link show br-lan 2>/dev/null | grep -qw "$gw_dev"; then
         echo "Bypass Mode"
     else
         echo "NAT Mode"
     fi
 }
+
 
 WORK_MODE=$(detect_work_mode)
 REFRESH_DELAY=1
