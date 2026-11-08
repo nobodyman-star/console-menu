@@ -46,15 +46,23 @@ get_lan_proto() {
 }
 
 get_cpu_usage() {
-    read _ u n s idle iw irq sirq rest < /proc/stat
-    old=$((u+n+s+idle+iw+irq+sirq))
+    # 读取第一次采样
+    read _ u1 n1 s1 idle1 iw1 irq1 sirq1 rest1 < /proc/stat
+    old_total=$((u1+n1+s1+idle1+iw1+irq1+sirq1))
+    old_idle=$idle1
+
     sleep "$REFRESH_DELAY"
-    read _ u n s idle iw irq sirq rest < /proc/stat
-    new=$((u+n+s+idle+iw+irq+sirq))
-    total=$((new-old))
-    idle_delta=$idle
-    if [ "$total" -gt 0 ]; then
-        echo $((100*(total-idle_delta)/total))
+
+    # 读取第二次采样
+    read _ u2 n2 s2 idle2 iw2 irq2 sirq2 rest2 < /proc/stat
+    new_total=$((u2+n2+s2+idle2+iw2+irq2+sirq2))
+    new_idle=$idle2
+
+    diff_total=$((new_total - old_total))
+    diff_idle=$((new_idle - old_idle))
+
+    if [ "$diff_total" -gt 0 ]; then
+        echo $(( 100 * (diff_total - diff_idle) / diff_total ))
     else
         echo 0
     fi
