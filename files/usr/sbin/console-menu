@@ -257,7 +257,10 @@ monitor_clients() {
         read -r answer
         [ "$answer" = "q" ] && break
     done
+    # 退出监控循环前，清空stdin残留缓冲，解决需要按两次q的BUG
+    while read -t 0.1 dummy; do :; done
 }
+
 
 enter_shell() {
     clear
@@ -266,9 +269,10 @@ enter_shell() {
 }
 
 main() {
-    # Only render on real terminal, skip for non-interactive
     [ -t 0 ] && [ -t 1 ] || exit 0
     while :; do
+        # 每次绘制菜单前清空stdin，彻底杜绝缓冲区残留
+        while read -t 0.1 dummy; do :; done
         draw_menu
         read -r choice
         case "$choice" in
@@ -284,5 +288,6 @@ main() {
         esac
     done
 }
+
 
 main "$@"
