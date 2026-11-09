@@ -264,9 +264,13 @@ monitor_clients() {
 
 enter_shell() {
     clear
-    echo "Entering ash shell, type exit to return to menu."
+    echo "==== Shell Mode ===="
+    echo "Type 'exit' + Enter to go back to menu."
+    echo
     /bin/ash -l
+    while read -t 0.1 dummy; do :; done
 }
+
 
 main() {
     [ -t 0 ] && [ -t 1 ] || exit 0
