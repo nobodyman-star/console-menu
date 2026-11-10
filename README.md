@@ -4,12 +4,12 @@ console-menu  是自定义Shell菜单脚本，放在  /usr/sbin/console-menu 
  
 ✅ 核心作用
  
-1. 接管系统控制台终端（串口/HDMI本地终端）
+1.接管系统控制台终端（串口/HDMI本地终端）
 通过修改  /etc/inittab ，把默认的OpenWrt ash命令行替换成这个菜单。
 - 飞牛虚拟机VNC控制台、物理机HDMI串口：开机停在终端，按Enter进入console-menu菜单
 - SSH登录：直接自动进入这个菜单。
   
-2. 菜单提供路由器状态可视化 + 一键管理功能
+2.菜单提供路由器状态可视化 + 一键管理功能
 - 实时显示：主机名、CPU使用率、内存、并发连接数、在线客户端数量。
 - 自动识别工作模式：NAT Mode / Bypass Mode（旁路模式）。
 - 查看网卡IP、进程、在线设备。
