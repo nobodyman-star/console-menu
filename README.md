@@ -8,14 +8,16 @@
 通过修改  /etc/inittab ，把默认的OpenWrt ash命令行替换成这个菜单。
 - 飞牛虚拟机VNC控制台、物理机HDMI串口：开机停在终端，按Enter进入console-menu菜单
 - SSH登录：直接自动进入这个菜单
+- 
 2. 菜单提供路由器状态可视化 + 一键管理功能
 - 实时显示：主机名、CPU使用率、内存、并发连接数、在线客户端数量
 - 自动识别工作模式：NAT Mode / Bypass Mode（旁路模式）
 - 查看网卡IP、进程、在线设备
+- 
 - 一键操作：
 - 设置LAN静态IP / DHCP
 - 开启/关闭LAN的DNSMASQ DHCP服务
-- 开启/关闭DHCP动态地址池
+- 开启/关闭DHCP服务
 - 查看网络接口、路由、进程列表
 - 在线客户端监控
 - 按需进入原生ash shell（q选项）
