@@ -163,7 +163,7 @@ draw_menu() {
     get_ip_addresses
 
     printf "\n${C_CYAN}------------------------ Quick Start ------------------------${C_RESET}\n"
-    printf "${C_GREEN}[1]${C_WHITE} Set LAN(br-lan) IP Proto to DHCP${C_RESET}\n"
+    printf "${C_GREEN}[1]${C_WHITE} Set LAN(br-lan) IP Proto to DHCP and Disable LAN DHCP Service${C_RESET}\n"
     printf "${C_YELLOW}[2]${C_WHITE} Set LAN(br-lan) Static IP${C_RESET}\n"
     printf "${C_CYAN}[3]${C_WHITE} Show network interfaces (ip addr)${C_RESET}\n"
     printf "${C_CYAN}[4]${C_WHITE} Show Program Info (ps)${C_RESET}\n"
@@ -185,6 +185,11 @@ set_lan_dhcp() {
     uci commit network || return 1
     /etc/init.d/network restart
     echo "LAN set to DHCP."
+    echo "Disabling LAN DHCP service..."
+    uci set dhcp.lan.ignore='1'
+    uci commit dhcp || { echo "UCI commit failed."; pause; return; }
+    /etc/init.d/dnsmasq restart
+    echo "LAN DHCP service is disabled."
     pause
 }
 
