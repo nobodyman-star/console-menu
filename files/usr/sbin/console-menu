@@ -178,22 +178,30 @@ draw_menu() {
 }
 
 set_lan_dhcp() {
-    echo "Changing LAN protocol to DHCP..."
+    echo "Changing LAN protocol to DHCP and disable LAN DHCP server..."
+
+    # 1. 修改 network 配置
     uci set network.lan.proto='dhcp' || return 1
     uci -q delete network.lan.ipaddr
     uci -q delete network.lan.netmask
     uci -q delete network.lan.gateway
     uci -q delete network.lan.broadcast
-    uci commit network || return 1
-    /etc/init.d/network restart
-    echo "LAN set to DHCP."
-    echo "Disabling LAN DHCP service..."
-    uci set dhcp.lan.ignore='1'
-    uci commit dhcp || { echo "UCI commit failed."; pause; return; }
-    /etc/init.d/dnsmasq restart
-    echo "LAN DHCP service is disabled."
+
+    # 2. 修改 dhcp 配置（提前写好，不中途重启网络）
+    uci set dhcp.lan.ignore='1' || return 1
+
+    # 一次性提交所有uci
+    uci commit network || { echo "network commit failed"; pause; return 1; }
+    uci commit dhcp || { echo "dhcp commit failed"; pause; return 1; }
+
+    echo "Config saved, restart network and dnsmasq..."
+    /etc/init.d/network restart || { echo "network restart failed"; pause; return 1; }
+    /etc/init.d/dnsmasq restart || { echo "dnsmasq restart failed"; pause; return 1; }
+
+    echo "✅ LAN set to DHCP client, LAN DHCP server disabled."
     pause
 }
+
 
 set_lan_static() {
     printf "Static IPv4 address (e.g. 192.168.1.1): "
