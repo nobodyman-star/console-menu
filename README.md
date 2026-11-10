@@ -1,6 +1,6 @@
 # console-menu
 
- console-menu  是自定义Shell菜单脚本，放在  /usr/sbin/console-menu ，不是系统自带程序。
+console-menu  是自定义Shell菜单脚本，放在  /usr/sbin/console-menu ，不是系统自带程序。
  
 ✅ 核心作用
  
@@ -24,8 +24,9 @@
 📌 工作原理
 
 1. 插件编译进固件，脚本部署到  /usr/sbin/console-menu。
-2. uci-defaults脚本在固件第一次开机，修改  /etc/inittab。
-将 tty1/hvc0/ttyS0 控制台的启动程序，替换为  /usr/sbin/console-menu。
+
+2. uci-defaults脚本在固件第一次开机，修改  /etc/inittab。将 tty1/hvc0/ttyS0 控制台的启动程序，替换为  /usr/sbin/console-menu。
+
 3. inittab的 askfirst 含义：终端就绪后，等待用户按下回车，才启动console-menu。
 
  
@@ -33,5 +34,6 @@
  
 ImmortalWrt x86（虚拟机/物理机软路由），不需要记住大量uci命令，串口/HDMI控制台可视化一键管理软路由1.设定LAN静态IP或者DHCP；2.开启或者关闭DHCPservice等。
  
-补充
-退出菜单回到原生shell：菜单按 q ；退出shell返回菜单，输入 exit 回车。
+补充:
+退出菜单回到原生shell：菜单按 q ；
+退出shell返回菜单，输入 exit 回车。
