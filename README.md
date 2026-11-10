@@ -13,8 +13,7 @@ console-menu  是自定义Shell菜单脚本，放在  /usr/sbin/console-menu 
 - 实时显示：主机名、CPU使用率、内存、并发连接数、在线客户端数量。
 - 自动识别工作模式：NAT Mode / Bypass Mode（旁路模式）。
 - 查看网卡IP、进程、在线设备。
-  
-3.  一键操作：
+3. 一键操作：
 - 设置LAN静态IP / DHCP
 - 开启/关闭LAN的DNSMASQ DHCP服务
 - 查看网络接口、路由、进程列表
