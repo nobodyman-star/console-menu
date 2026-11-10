@@ -44,36 +44,36 @@ get_lan_dhcp_status() {
 
 # 开启LAN DHCP服务
 enable_lan_dhcp() {
-    echo "${C_CYAN}Enabling LAN DHCP service...${C_RESET}"
+    echo "Enabling LAN DHCP service..."
     uci -q delete dhcp.lan.ignore
-    uci commit dhcp || { echo "${C_RED}UCI commit failed.${C_RESET}"; pause; return; }
+    uci commit dhcp || { echo "UCI commit failed."; pause; return; }
     /etc/init.d/dnsmasq restart
-    echo "${C_GREEN}LAN DHCP service is enabled.${C_RESET}"
+    echo "LAN DHCP service is enabled."
     pause
 }
 
 # 关闭LAN DHCP服务
 disable_lan_dhcp() {
-    echo "${C_YELLOW}Disabling LAN DHCP service...${C_RESET}"
+    echo "Disabling LAN DHCP service..."
     uci set dhcp.lan.ignore='1'
-    uci commit dhcp || { echo "${C_RED}UCI commit failed.${C_RESET}"; pause; return; }
+    uci commit dhcp || { echo "UCI commit failed."; pause; return; }
     /etc/init.d/dnsmasq restart
-    echo "${C_YELLOW}LAN DHCP service is disabled.${C_RESET}"
+    echo "LAN DHCP service is disabled."
     pause
 }
 
+WORK_MODE=$(detect_work_mode)
 REFRESH_DELAY=1
-# ANSI colors 扩充灰色，语义化
+# ANSI colors
 C_RESET='\033[0m'
 C_GREEN='\033[1;32m'
 C_YELLOW='\033[1;33m'
 C_CYAN='\033[1;36m'
 C_RED='\033[1;31m'
 C_WHITE='\033[1;37m'
-C_GRAY='\033[1;90m'
 
 pause() {
-    printf "\n${C_CYAN}Press Enter to return...${C_RESET}"
+    printf "\nPress Enter to return..."
     read -r _
 }
 
@@ -137,47 +137,13 @@ get_ip_addresses() {
     ip -o -4 addr show 2>/dev/null | awk '
     $2 != "lo" {
         sub(/\/.*/,"",$4)
-        printf "    ├─ %s: \033[1;32m%s\033[0m\n", $2, $4
+        printf "    ├─ %s: %s\n", $2, $4
     }'
-}
-
-# 根据CPU数值返回对应颜色
-color_cpu() {
-    local cpu_val="$1"
-    if [ "$cpu_val" -ge 80 ]; then
-        echo "${C_RED}${cpu_val}%${C_RESET}"
-    elif [ "$cpu_val" -ge 50 ]; then
-        echo "${C_YELLOW}${cpu_val}%${C_RESET}"
-    else
-        echo "${C_GREEN}${cpu_val}%${C_RESET}"
-    fi
-}
-
-# 工作模式颜色
-color_workmode() {
-    local mode="$1"
-    case "$mode" in
-        "NAT Mode") echo "${C_GREEN}${mode}${C_RESET}" ;;
-        "Bypass Mode") echo "${C_YELLOW}${mode}${C_RESET}" ;;
-        *) echo "${C_GRAY}${mode}${C_RESET}" ;;
-    esac
-}
-
-# DHCP状态颜色
-color_dhcp() {
-    local st="$1"
-    if [ "$st" = "Enabled" ]; then
-        echo "${C_GREEN}${st}${C_RESET}"
-    else
-        echo "${C_YELLOW}${st}${C_RESET}"
-    fi
 }
 
 draw_menu() {
     clear
-    WORK_MODE=$(detect_work_mode)
-    cpu_raw="$(get_cpu_usage)"
-    cpu_colored=$(color_cpu "$cpu_raw")
+    cpu="$(get_cpu_usage)"
     mem="$(get_memory)"
     sessions="$(get_sessions)"
     clients="$(get_client_count)"
@@ -186,60 +152,59 @@ draw_menu() {
     lan_dhcp_status="$(get_lan_dhcp_status)"
 
     printf "${C_WHITE}Hostname: ${C_GREEN}%s${C_RESET}\n" "$hostname"
-    printf "${C_WHITE}Cpu Usage: %s\n" "$cpu_colored"
+    printf "${C_WHITE}Cpu Usage: ${C_GREEN}%s%%${C_RESET}\n" "$cpu"
     printf "${C_WHITE}Memory Usage: ${C_GREEN}%s${C_RESET}\n" "$mem"
     printf "${C_WHITE}Network Sessions: ${C_GREEN}%s${C_RESET}\n" "$sessions"
     printf "${C_WHITE}Client Num: ${C_GREEN}%s${C_RESET}\n" "$clients"
-    printf "${C_WHITE}Work Mode: %s\n" "$(color_workmode "$WORK_MODE")"
+    printf "${C_WHITE}Work Mode: ${C_GREEN}%s${C_RESET}\n" "$WORK_MODE"
     printf "${C_WHITE}LAN Protocol: ${C_GREEN}%s${C_RESET}\n" "$lanproto"
-    printf "${C_WHITE}LAN DHCP Service: %s\n" "$(color_dhcp "$lan_dhcp_status")"
+    printf "${C_WHITE}LAN DHCP Service: ${C_GREEN}%s${C_RESET}\n" "$lan_dhcp_status"
     printf "${C_WHITE}IP Addresses:${C_RESET}\n"
     get_ip_addresses
 
     printf "\n${C_CYAN}------------------------ Quick Start ------------------------${C_RESET}\n"
-    printf "${C_YELLOW}[1]${C_WHITE} Set LAN(br-lan) IP Proto to DHCP ${C_RED}(RISK)${C_RESET}\n"
-    printf "${C_GREEN}[2]${C_WHITE} Set LAN(br-lan) Static IP${C_RESET}\n"
+    printf "${C_GREEN}[1]${C_WHITE} Set LAN(br-lan) IP Proto to DHCP${C_RESET}\n"
+    printf "${C_YELLOW}[2]${C_WHITE} Set LAN(br-lan) Static IP${C_RESET}\n"
     printf "${C_CYAN}[3]${C_WHITE} Show network interfaces (ip addr)${C_RESET}\n"
     printf "${C_CYAN}[4]${C_WHITE} Show Program Info (ps)${C_RESET}\n"
     printf "${C_CYAN}[5]${C_WHITE} Monitor Online Clients${C_RESET}\n"
     printf "${C_GREEN}[6]${C_WHITE} Enable LAN DHCP Service${C_RESET}\n"
     printf "${C_YELLOW}[7]${C_WHITE} Disable LAN DHCP Service${C_RESET}\n"
-    printf "${C_RED}[q]${C_WHITE} Enter Shell ${C_RED}(DANGER)${C_RESET}\n"
+    printf "${C_RED}[q]${C_WHITE} Enter Shell${C_RESET}\n"
     printf "${C_CYAN}-------------------------------------------------------------${C_RESET}\n"
-    printf "${C_WHITE}Select an option: ${C_RESET}"
+    printf "Select an option: "
 }
 
 set_lan_dhcp() {
-    echo "${C_RED}WARNING: Changing LAN to DHCP CLIENT, risk of losing LAN access!${C_RESET}"
-    echo "${C_CYAN}Changing LAN protocol to DHCP...${C_RESET}"
+    echo "Changing LAN protocol to DHCP..."
     uci set network.lan.proto='dhcp' || return 1
     uci -q delete network.lan.ipaddr
     uci -q delete network.lan.netmask
     uci -q delete network.lan.gateway
     uci -q delete network.lan.broadcast
-    uci commit network || { echo "${C_RED}UCI commit failed.${C_RESET}"; return 1; }
+    uci commit network || return 1
     /etc/init.d/network restart
-    echo "${C_GREEN}LAN set to DHCP.${C_RESET}"
+    echo "LAN set to DHCP."
     pause
 }
 
 set_lan_static() {
-    printf "${C_CYAN}Static IPv4 address (e.g. 192.168.1.1): ${C_RESET}"
+    printf "Static IPv4 address (e.g. 192.168.1.1): "
     read -r ipaddr
     if ! valid_ipv4 "$ipaddr"; then
-        echo "${C_RED}Invalid IPv4 address.${C_RESET}"
+        echo "Invalid IPv4 address."
         pause
         return
     fi
-    printf "${C_CYAN}Netmask [255.255.255.0]: ${C_RESET}"
+    printf "Netmask [255.255.255.0]: "
     read -r netmask
     [ -z "$netmask" ] && netmask="255.255.255.0"
     if ! valid_ipv4 "$netmask"; then
-        echo "${C_RED}Invalid netmask.${C_RESET}"
+        echo "Invalid netmask."
         pause
         return
     fi
-    printf "${C_CYAN}Gateway (optional, press Enter skip): ${C_RESET}"
+    printf "Gateway (optional, press Enter skip): "
     read -r gateway
     uci set network.lan.proto='static'
     uci set network.lan.ipaddr="$ipaddr"
@@ -248,32 +213,32 @@ set_lan_static() {
         if valid_ipv4 "$gateway"; then
             uci set network.lan.gateway="$gateway"
         else
-            echo "${C_YELLOW}Gateway invalid, skip gateway${C_RESET}"
+            echo "Gateway invalid, skip gateway"
         fi
     else
         uci -q delete network.lan.gateway
     fi
-    uci commit network || { echo "${C_RED}UCI commit failed.${C_RESET}"; pause; return; }
-    echo "${C_CYAN}Applying network...${C_RESET}"
+    uci commit network || { echo "UCI commit failed."; pause; return; }
+    echo "Applying network..."
     /etc/init.d/network restart
-    echo "${C_GREEN}Static IP applied: $ipaddr / $netmask${C_RESET}"
+    echo "Static IP applied: $ipaddr / $netmask"
     pause
 }
 
 show_interfaces() {
     clear
-    echo "${C_CYAN}Network interfaces${C_RESET}"
+    echo "Network interfaces"
     echo "------------------"
     ip addr show 2>/dev/null
     echo
-    echo "${C_CYAN}Routes:${C_RESET}"
+    echo "Routes:"
     ip route show 2>/dev/null
     pause
 }
 
 show_processes() {
     clear
-    echo "${C_CYAN}Running processes${C_RESET}"
+    echo "Running processes"
     echo "-----------------"
     ps w
     pause
@@ -282,13 +247,13 @@ show_processes() {
 monitor_clients() {
     while :; do
         clear
-        echo "${C_CYAN}Online clients (DHCP leases + ARP)${C_RESET}"
+        echo "Online clients (DHCP leases + ARP)"
         echo "---------------------------------"
         printf "%-18s %-18s %-24s\n" "IPv4" "MAC" "Source"
-        [ -r /tmp/dhcp.leases ] && awk '{printf "\033[1;32m%-18s %-18s DHCP Lease\033[0m\n",$3,$2}' /tmp/dhcp.leases
-        ip neigh show 2>/dev/null | awk '$1 ~ /^[0-9]+\./ && $3!="FAILED" {printf "\033[1;36m%-18s %-18s ARP\033[0m\n",$1,$2}'
+        [ -r /tmp/dhcp.leases ] && awk '{printf "%-18s %-18s DHCP Lease\n",$3,$2}' /tmp/dhcp.leases
+        ip neigh show 2>/dev/null | awk '$1 ~ /^[0-9]+\./ && $3!="FAILED" {printf "%-18s %-18s ARP\n",$1,$2}'
         echo
-        echo "${C_YELLOW}Press q + Enter to exit monitor${C_RESET}"
+        echo "Press q + Enter to exit monitor"
         read -r answer
         [ "$answer" = "q" ] && break
     done
@@ -296,14 +261,16 @@ monitor_clients() {
     while read -t 0.1 dummy; do :; done
 }
 
+
 enter_shell() {
     clear
-    echo "${C_RED}==== Shell Mode ====${C_RESET}"
-    echo "${C_CYAN}Type 'exit' + Enter to go back to menu.${C_RESET}"
+    echo "==== Shell Mode ===="
+    echo "Type 'exit' + Enter to go back to menu."
     echo
     /bin/ash -l
     while read -t 0.1 dummy; do :; done
 }
+
 
 main() {
     [ -t 0 ] && [ -t 1 ] || exit 0
@@ -325,5 +292,6 @@ main() {
         esac
     done
 }
+
 
 main "$@"
