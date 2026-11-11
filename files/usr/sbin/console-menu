@@ -42,9 +42,6 @@ enable_lan_dhcp() {
     uci -q delete dhcp.lan.ignore
     # 保存配置到文件，非常关键！
     uci commit dhcp || { echo "UCI commit failed."; pause; return; }
-    # 设置开机自启，然后立即启动
-    /etc/init.d/odhcpd enable
-    /etc/init.d/odhcpd start
     echo "LAN DHCP service is enabled."
     pause
 }
@@ -55,8 +52,6 @@ disable_lan_dhcp() {
     echo "Disabling LAN DHCP service..."
     uci set dhcp.lan.ignore='1'
     uci commit dhcp || { echo "UCI commit failed."; pause; return; }
-    /etc/init.d/odhcpd stop
-    /etc/init.d/odhcpd disable
     /etc/init.d/dnsmasq restart
     echo "LAN DHCP service is disabled."
     pause
@@ -192,8 +187,6 @@ set_lan_dhcp() {
     # 一次性提交所有uci
     uci commit network || { echo "network commit failed"; pause; return 1; }
     uci commit dhcp || { echo "dhcp commit failed"; pause; return 1; }
-    /etc/init.d/odhcpd disable
-    /etc/init.d/odhcpd stop
     echo "Config saved, restart network and dnsmasq..."
     /etc/init.d/network restart || { echo "network restart failed"; pause; return 1; }
     /etc/init.d/dnsmasq restart || { echo "dnsmasq restart failed"; pause; return 1; }
