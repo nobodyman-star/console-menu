@@ -164,7 +164,7 @@ draw_menu() {
     printf "${C_WHITE}IP Addresses:${C_RESET}\n"
     get_ip_addresses
 
-    printf "\n${C_CYAN}------------------------ Quick Start ------------------------${C_RESET}\n"
+    printf "\n${C_CYAN}------------------------------ Quick Start --------------------------------${C_RESET}\n"
     printf "${C_GREEN}[1]${C_WHITE} Set LAN(br-lan) IP Proto to DHCP and Disable LAN DHCP Service${C_RESET}\n"
     printf "${C_YELLOW}[2]${C_WHITE} Set LAN(br-lan) Static IP${C_RESET}\n"
     printf "${C_CYAN}[3]${C_WHITE} Show network interfaces (ip addr)${C_RESET}\n"
@@ -173,7 +173,7 @@ draw_menu() {
     printf "${C_GREEN}[6]${C_WHITE} Enable LAN DHCP Service${C_RESET}\n"
     printf "${C_YELLOW}[7]${C_WHITE} Disable LAN DHCP Service${C_RESET}\n"
     printf "${C_RED}[q]${C_WHITE} Enter Shell${C_RESET}\n"
-    printf "${C_CYAN}-------------------------------------------------------------${C_RESET}\n"
+    printf "${C_CYAN}-----------------------------------------------------------------------------${C_RESET}\n"
     printf "Select an option: "
 }
 
