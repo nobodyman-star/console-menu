@@ -216,12 +216,8 @@ set_lan_dhcp() {
     uci -q delete network.lan.netmask
     uci -q delete network.lan.gateway
     uci -q delete network.lan.broadcast
-
-    # 2. 修改 dhcp 配置（提前写好，不中途重启网络）
-    uci set dhcp.lan.ignore='1' || return 1
-    # 一次性提交所有uci
     uci commit network || { echo "network commit failed"; pause; return 1; }
-    uci commit dhcp || { echo "dhcp commit failed"; pause; return 1; }
+    stop_dhcp_full
     echo "Config saved, restart network and dnsmasq..."
     /etc/init.d/network restart || { echo "network restart failed"; pause; return 1; }
     /etc/init.d/dnsmasq restart || { echo "dnsmasq restart failed"; pause; return 1; }
