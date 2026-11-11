@@ -49,6 +49,8 @@ enable_lan_dhcp() {
 disable_lan_dhcp() {
     echo "Disabling LAN DHCP service..."
     uci set dhcp.lan.ignore='1'
+    /etc/init.d/odhcpd stop
+    /etc/init.d/odhcpd disable
     uci commit dhcp || { echo "UCI commit failed."; pause; return; }
     /etc/init.d/dnsmasq restart
     echo "LAN DHCP service is disabled."
