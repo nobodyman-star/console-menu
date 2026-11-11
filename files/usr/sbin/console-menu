@@ -35,29 +35,57 @@ get_lan_dhcp_status() {
     fi
 }
 
-# 开启LAN DHCP服务
+# 检测是否开启maindhcp
+is_odhcp_maindhcp() {
+    local val
+    val=$(uci get dhcp.odhcpd.maindhcp 2>/dev/null)
+    [ "$val" = "1" ]
+}
+
 enable_lan_dhcp() {
     echo "Enabling LAN DHCP service..."
-    # 删除 ignore=1 标记
     uci -q delete dhcp.lan.ignore
-    # 保存配置到文件！
     uci commit dhcp || { echo "UCI commit failed."; pause; return; }
-    /etc/init.d/dnsmasq enable
-    /etc/init.d/dnsmasq restart || { echo "dnsmasq restart failed."; pause; return; }
+    if is_odhcp_maindhcp; then
+        /etc/init.d/odhcpd enable
+        /etc/init.d/odhcpd restart || { echo "odhcpd restart failed."; pause; return; }
+    else
+        /etc/init.d/dnsmasq enable
+        /etc/init.d/dnsmasq restart || { echo "dnsmasq restart failed."; pause; return; }
+    fi
     echo "LAN DHCP service is enabled."
     pause
 }
 
-
-# 关闭LAN DHCP服务
 disable_lan_dhcp() {
     echo "Disabling LAN DHCP service..."
     uci set dhcp.lan.ignore='1'
     uci commit dhcp || { echo "UCI commit failed."; pause; return; }
-    /etc/init.d/dnsmasq restart
-    echo "LAN DHCP service is disabled."
+    if is_odhcp_maindhcp; then
+        /etc/init.d/odhcpd stop
+        /etc/init.d/odhcpd disable
+    else
+        /etc/init.d/dnsmasq restart
+        echo "LAN DHCP service is disabled (DNS still running)."
+    fi
     pause
 }
+
+# 选项1专用，彻底停掉DHCP释放UDP67
+stop_dhcp_full() {
+    uci set dhcp.lan.ignore='1'
+    uci commit dhcp || { echo "UCI commit failed."; pause; return; }
+    if is_odhcp_maindhcp; then
+        /etc/init.d/odhcpd stop
+        /etc/init.d/odhcpd disable
+    else
+        /etc/init.d/dnsmasq stop
+        /etc/init.d/dnsmasq disable
+    fi
+    echo "DHCP service fully stopped, UDP67 released."
+    pause
+}
+
 
 WORK_MODE=$(detect_work_mode)
 REFRESH_DELAY=1
