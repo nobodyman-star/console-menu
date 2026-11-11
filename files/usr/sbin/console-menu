@@ -39,6 +39,8 @@ get_lan_dhcp_status() {
 enable_lan_dhcp() {
     echo "Enabling LAN DHCP service..."
     uci -q delete dhcp.lan.ignore
+    /etc/init.d/odhcpd enable
+    /etc/init.d/odhcpd start
     uci commit dhcp || { echo "UCI commit failed."; pause; return; }
     /etc/init.d/dnsmasq restart
     echo "LAN DHCP service is enabled."
@@ -184,7 +186,8 @@ set_lan_dhcp() {
 
     # 2. 修改 dhcp 配置（提前写好，不中途重启网络）
     uci set dhcp.lan.ignore='1' || return 1
-
+    /etc/init.d/odhcpd disable
+    /etc/init.d/odhcpd stop
     # 一次性提交所有uci
     uci commit network || { echo "network commit failed"; pause; return 1; }
     uci commit dhcp || { echo "dhcp commit failed"; pause; return 1; }
