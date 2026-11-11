@@ -193,7 +193,7 @@ set_lan_dhcp() {
     /etc/init.d/network restart || { echo "network restart failed"; pause; return 1; }
     /etc/init.d/dnsmasq restart || { echo "dnsmasq restart failed"; pause; return 1; }
 
-    echo "✅ LAN set to DHCP client, LAN DHCP server disabled."
+    echo "LAN set to DHCP client, LAN DHCP server disabled."
     pause
 }
 
