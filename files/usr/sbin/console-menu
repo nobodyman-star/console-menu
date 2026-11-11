@@ -42,6 +42,8 @@ enable_lan_dhcp() {
     uci -q delete dhcp.lan.ignore
     # 保存配置到文件！
     uci commit dhcp || { echo "UCI commit failed."; pause; return; }
+    /etc/init.d/dnsmasq enable
+    /etc/init.d/dnsmasq restart || { echo "dnsmasq restart failed."; pause; return; }
     echo "LAN DHCP service is enabled."
     pause
 }
