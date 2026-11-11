@@ -38,9 +38,9 @@ get_lan_dhcp_status() {
 # 开启LAN DHCP服务
 enable_lan_dhcp() {
     echo "Enabling LAN DHCP service..."
-    # 删除 ignore=1 标记，允许odhcpd在lan接口提供DHCP
+    # 删除 ignore=1 标记
     uci -q delete dhcp.lan.ignore
-    # 保存配置到文件，非常关键！
+    # 保存配置到文件！
     uci commit dhcp || { echo "UCI commit failed."; pause; return; }
     echo "LAN DHCP service is enabled."
     pause
