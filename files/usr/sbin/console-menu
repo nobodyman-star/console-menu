@@ -209,7 +209,7 @@ draw_menu() {
 
 set_lan_dhcp() {
     echo "Changing LAN protocol to DHCP and disable LAN DHCP server..."
-
+    disable_lan_dhcp
     # 1. 修改 network 配置
     uci set network.lan.proto='dhcp' || return 1
     uci -q delete network.lan.ipaddr
@@ -217,7 +217,6 @@ set_lan_dhcp() {
     uci -q delete network.lan.gateway
     uci -q delete network.lan.broadcast
     uci commit network || { echo "network commit failed"; pause; return 1; }
-    disable_lan_dhcp
     echo "Config saved, restart network and dnsmasq..."
     /etc/init.d/network restart || { echo "network restart failed"; pause; return 1; }
     # /etc/init.d/dnsmasq restart || { echo "dnsmasq restart failed"; pause; return 1; }
