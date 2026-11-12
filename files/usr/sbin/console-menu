@@ -52,7 +52,7 @@ enable_lan_dhcp() {
         /etc/init.d/odhcpd restart || { echo "odhcpd restart failed."; pause; return; }
     else
         /etc/init.d/dnsmasq enable
-        /etc/init.d/dnsmasq restart || { echo "dnsmasq restart failed."; pause; return; }
+        /etc/init.d/dnsmasq reload || { echo "dnsmasq reload failed."; pause; return; }
     fi
     echo "LAN DHCP service is enabled."
     pause
