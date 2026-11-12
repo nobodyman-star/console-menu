@@ -45,6 +45,7 @@ is_odhcp_maindhcp() {
 enable_lan_dhcp() {
     echo "Enabling LAN DHCP service..."
     uci -q delete dhcp.lan.ignore
+    uci set dhcp.lan.dynamicdhcp='1'
     uci commit dhcp || { echo "UCI commit failed."; pause; return; }
     if is_odhcp_maindhcp; then
         /etc/init.d/odhcpd enable
@@ -60,6 +61,7 @@ enable_lan_dhcp() {
 disable_lan_dhcp() {
     echo "Disabling LAN DHCP service..."
     uci set dhcp.lan.ignore='1'
+    uci set dhcp.lan.dynamicdhcp='0'
     uci commit dhcp || { echo "UCI commit failed."; pause; return; }
     if is_odhcp_maindhcp; then
         /etc/init.d/odhcpd stop
@@ -70,22 +72,6 @@ disable_lan_dhcp() {
     fi
     pause
 }
-
-# 选项1专用，彻底停掉DHCP释放UDP67
-stop_dhcp_full() {
-    uci set dhcp.lan.ignore='1'
-    uci commit dhcp || { echo "UCI commit failed."; pause; return; }
-    if is_odhcp_maindhcp; then
-        /etc/init.d/odhcpd stop
-        /etc/init.d/odhcpd disable
-    else
-        /etc/init.d/dnsmasq stop
-        /etc/init.d/dnsmasq disable
-    fi
-    echo "DHCP service fully stopped, UDP67 released."
-    pause
-}
-
 
 WORK_MODE=$(detect_work_mode)
 REFRESH_DELAY=1
