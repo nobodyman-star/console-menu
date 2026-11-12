@@ -194,8 +194,18 @@ draw_menu() {
 }
 
 set_lan_dhcp() {
-    echo "Changing LAN protocol to DHCP and disable LAN DHCP server..."
-    disable_lan_dhcp
+    # echo "Changing LAN protocol to DHCP and disable LAN DHCP server..."
+    echo "Disabling LAN DHCP service..."
+    uci set dhcp.lan.ignore='1'
+    uci set dhcp.lan.dynamicdhcp='0'
+    uci commit dhcp || { echo "UCI commit failed."; pause; return; }
+    if is_odhcp_maindhcp; then
+        /etc/init.d/odhcpd stop
+        /etc/init.d/odhcpd disable
+    else
+        /etc/init.d/dnsmasq restart
+        echo "LAN DHCP service is disabled (DNS still running)."
+    fi
     # 1. 修改 network 配置
     uci set network.lan.proto='dhcp' || return 1
     uci -q delete network.lan.ipaddr
@@ -206,7 +216,6 @@ set_lan_dhcp() {
     echo "Config saved, restart network and dnsmasq..."
     /etc/init.d/network restart || { echo "network restart failed"; pause; return 1; }
     # /etc/init.d/dnsmasq restart || { echo "dnsmasq restart failed"; pause; return 1; }
-
     echo "LAN set to DHCP client, LAN DHCP server disabled."
     pause
 }
