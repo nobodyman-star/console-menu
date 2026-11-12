@@ -67,7 +67,7 @@ disable_lan_dhcp() {
         /etc/init.d/odhcpd stop
         /etc/init.d/odhcpd disable
     else
-        /etc/init.d/dnsmasq restart
+        /etc/init.d/dnsmasq reload
         echo "LAN DHCP service is disabled (DNS still running)."
     fi
     pause
@@ -203,7 +203,7 @@ set_lan_dhcp() {
         /etc/init.d/odhcpd stop
         /etc/init.d/odhcpd disable
     else
-        /etc/init.d/dnsmasq restart
+        /etc/init.d/dnsmasq reload
         echo "LAN DHCP service is disabled (DNS still running)."
     fi
     # 1. 修改 network 配置
